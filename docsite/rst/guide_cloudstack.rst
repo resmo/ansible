@@ -7,7 +7,7 @@ Introduction
 ````````````
 The purpose of this section is to explain how to put Ansible modules together to use Ansible in a CloudStack context. You will find more usage examples in the details section of each module.
 
-Ansible contains a number of core modules for interacting with CloudStack based clouds. All modules support check mode and are designed to use idempotence and have been created, tested and are maintained by the community.
+Ansible contains a number of extra modules for interacting with CloudStack based clouds. All modules support check mode and are designed to use idempotence and have been created, tested and are maintained by the community.
 
 .. note:: Some of the modules will require domain admin or root admin priviledges.
 
@@ -25,8 +25,7 @@ You'll need this Python module installed on the execution host, usually your wor
 
 Credentials File
 ````````````````
-You can pass credentals and the endpoint of your cloud as module arguments, however in most cases it is
-a far less work to store your credentials in the cloudstack.ini file.
+You can pass credentals and the endpoint of your cloud as module arguments, however in most cases it is a far less work to store your credentials in the cloudstack.ini file.
 
 The python library cs looks for the credentials file in the following order (last one wins):
 
@@ -48,8 +47,7 @@ The structure of the ini file must look like this:
 
 Regions
 ```````
-If you use more than one CloudStack region, you can define as many
-sections as you want and name them as you like, e.g.:
+If you use more than one CloudStack region, you can define as many sections as you want and name them as you like, e.g.:
 
 .. code-block:: bash
 
@@ -60,26 +58,26 @@ sections as you want and name them as you like, e.g.:
     secret = api secret
 
     [exmaple_cloud_one]
-    endpoint = https://cloud.example.com/client/api
+    endpoint = https://cloud-one.example.com/client/api
     key = api key
     secret = api secret
 
     [exmaple_cloud_two]
-    endpoint = https://cloud.example.com/client/api
+    endpoint = https://cloud-two.example.com/client/api
     key = api key
     secret = api secret
   
-.. Hint:: Of course this can also be used to for login into the same region using different accounts.
+.. Hint:: Sections can also be used to for login into the same region using different accounts.
 
 By passing the argument ``api_region`` with the cloudstack modules, the region wanted will be selected.
 
 .. code-block:: yaml
 
     - name: ensure my ssh pubkey exists on all cloudstack regions
-      local_action: cs_sshkeypair 
+      local_action: cs_sshkeypair
         name: my-ssh-key
-        public_key: '{{ lookup('file', '~/.ssh/id_rsa.pub') }}'
-        api_region: '{{ item }}'
+        public_key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+        api_region: "{{ item }}"
         with_items:
           - exoscale
           - exmaple_cloud_one
@@ -117,10 +115,6 @@ As you can see, the public IPs for our web servers and jumphost has been assigne
 
 The configure the jumphost, web servers and database servers, we use ``group_vars``. The ``group_vars`` directory contains 4 files for configuration of the groups: cloud-vm, jumphost, webserver and db-server. The cloud-vm is there for specifing the defaults of our cloud infrastructure.
 
-Our database servers should get more CPU and RAM, so we define to use a ``Large`` offering for them. The web servers should get a ``Small offering`` as we would scale them horizontaly, which is also our default offering.
-
-Futher we provision a jump host which has only port 22 opened for accessing the VMs from our office IPv4 network.
-
 .. code-block:: yaml
 
     # file: group_vars/cloud-vm
@@ -128,18 +122,15 @@ Futher we provision a jump host which has only port 22 opened for accessing the 
     cs_offering: Small
     cs_firewall: []
 
-.. code-block:: yaml
-
-    # file: group_vars/jumphost
-    ---
-    cs_firewall:
-      - { port: 22, cidr: "17.17.17.0/24" }
+Our database servers should get more CPU and RAM, so we define to use a ``Large`` offering for them. 
 
 .. code-block:: yaml
 
     # file: group_vars/db-server
     ---
     cs_offering: Large
+
+The web servers should get a ``Small`` offering as we would scale them horizontaly, which is also our default offering.
 
 .. code-block:: yaml
 
@@ -148,6 +139,15 @@ Futher we provision a jump host which has only port 22 opened for accessing the 
     cs_firewall: 
       - { port: 80 }
       - { port: 443 }
+
+Futher we provision a jump host which has only port 22 opened for accessing the VMs from our office IPv4 network.
+
+.. code-block:: yaml
+
+    # file: group_vars/jumphost
+    ---
+    cs_firewall:
+      - { port: 22, cidr: "17.17.17.0/24" }
 
 Now to the fun part. We create a playbook to create our infrastructure we call it ``infra.yml``:
 
@@ -163,7 +163,6 @@ Now to the fun part. We create a playbook to create our infrastructure we call i
           cs_instance:
             name: "{{ inventory_hostname_short }}"
             template: Linux Debian 7 64-bit 20GB Disk
-            
             service_offering: "{{ cs_offering }}"
             state: running
 
