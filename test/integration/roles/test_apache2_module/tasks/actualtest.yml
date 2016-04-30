@@ -22,10 +22,10 @@
   when: "ansible_os_family == 'Suse'"
 
 - name: disable alias module
-  apache2_module: name=alias state=absent
+  apache2_module: name=alias state=absent force=yes
 
 - name: disable alias module, second run
-  apache2_module: name=alias state=absent
+  apache2_module: name=alias state=absent force=yes
   register: disable
 
 - name: ensure apache2_module is idempotent
@@ -34,7 +34,7 @@
       - 'not disable.changed'
 
 - name: enable alias module
-  apache2_module: name=alias state=present
+  apache2_module: name=alias state=present force=yes
   register: enable
 
 - name: ensure changed on successful enable
@@ -43,7 +43,7 @@
       - 'enable.changed'
 
 - name: enable alias module, second run
-  apache2_module: name=alias state=present
+  apache2_module: name=alias state=present force=yes
   register: enabletwo
 
 - name: ensure apache2_module is idempotent
@@ -52,10 +52,10 @@
       - 'not enabletwo.changed'
 
 - name: disable alias module, final run
-  apache2_module: name=alias state=absent
+  apache2_module: name=alias state=absent force=yes
   register: disablefinal
 
-- name: ensure changed on successful disable
+- name: ensure changed on successful disable force=yes
   assert:
     that:
       - 'disablefinal.changed'
