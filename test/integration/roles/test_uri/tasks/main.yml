@@ -146,6 +146,7 @@
     url: 'http://httpbin.org/redirect/2'
     follow_redirects: 'none'
     status_code: 302
+    timeout: 60
   register: result
 
 - name: Assert location header
@@ -156,6 +157,7 @@
 - name: Check SSL with redirect
   uri:
     url: 'https://httpbin.org/redirect/2'
+    timeout: 60
   register: result
 
 - name: Assert SSL with redirect
@@ -166,6 +168,7 @@
 - name: redirect to bad SSL site
   uri:
     url: 'http://wrong.host.badssl.com'
+    timeout: 60
   register: result
   ignore_errors: true
 
@@ -179,6 +182,7 @@
   uri:
     url: 'http://httpbin.org/basic-auth/user/passwd'
     user: user
+    timeout: 60
     password: passwd
 
 - name: test basic forced auth
@@ -186,18 +190,21 @@
     url: 'http://httpbin.org/hidden-basic-auth/user/passwd'
     force_basic_auth: true
     user: user
+    timeout: 60
     password: passwd
 
 - name: test PUT
   uri:
     url: 'http://httpbin.org/put'
     method: PUT
+    timeout: 60
     body: 'foo=bar'
 
 - name: test OPTIONS
   uri:
     url: 'http://httpbin.org/'
     method: OPTIONS
+    timeout: 60
   register: result
 
 - name: Assert we got an allow header
@@ -214,6 +221,7 @@
 - name: Test that SNI succeeds on python versions that have SNI
   uri:
     url: 'https://sni.velox.ch'
+    timeout: 60
     return_content: true
   when: ansible_python.has_sslcontext
   register: result
@@ -228,6 +236,7 @@
 - name: Verify SNI verification fails on old python without urllib3 contrib
   uri:
     url: 'https://sni.velox.ch'
+    timeout: 60
   ignore_errors: true
   when: not ansible_python.has_sslcontext
   register: result
@@ -254,6 +263,7 @@
 - name: Verify SNI verificaiton succeeds on old python with urllib3 contrib
   uri:
     url: 'https://sni.velox.ch'
+    timeout: 60
     return_content: true
   when: not ansible_python.has_sslcontext and not is_ubuntu_precise|bool
   register: result
@@ -286,3 +296,4 @@
     status_code: 202
     method: POST
     body: foo
+    timeout: 60
