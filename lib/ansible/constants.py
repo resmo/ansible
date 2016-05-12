@@ -130,13 +130,14 @@ DEFAULT_COW_WHITELIST = ['bud-frogs', 'bunny', 'cheese', 'daemon', 'default', 'd
 DEFAULTS='defaults'
 
 # FIXME: add deprecation warning when these get set
-#### DEPRECATED VARS #### 
+#### DEPRECATED VARS ####
 # use more sanely named 'inventory'
 DEPRECATED_HOST_LIST  = get_config(p, DEFAULTS, 'hostfile', 'ANSIBLE_HOSTS', '/etc/ansible/hosts', ispath=True)
 # this is not used since 0.5 but people might still have in config
 DEFAULT_PATTERN           = get_config(p, DEFAULTS, 'pattern', None, None)
 
 #### GENERALLY CONFIGURABLE THINGS ####
+DEFAULT_PYTHON_INTEPRETER = get_config(p, DEFAULTS, 'python_intepreter', 'ANSIBLE_PYTHON_INTEPRETER', '/usr/bin/python')
 DEFAULT_DEBUG             = get_config(p, DEFAULTS, 'debug',            'ANSIBLE_DEBUG',            False, boolean=True)
 DEFAULT_HOST_LIST         = get_config(p, DEFAULTS,'inventory', 'ANSIBLE_INVENTORY', DEPRECATED_HOST_LIST, ispath=True)
 DEFAULT_MODULE_PATH       = get_config(p, DEFAULTS, 'library',          'ANSIBLE_LIBRARY',          None, ispathlist=True)

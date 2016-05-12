@@ -623,7 +623,7 @@ def _find_snippet_imports(module_name, module_data, module_path, module_args, ta
 
         shebang, interpreter = _get_shebang(u'/usr/bin/python', task_vars)
         if shebang is None:
-            shebang = u'#!/usr/bin/python'
+            shebang = u'#!'+C.DEFAULT_PYTHON_INTEPRETER
 
         executable = interpreter.split(u' ', 1)
         if len(executable) == 2 and executable[0].endswith(u'env'):
