@@ -1,0 +1,4 @@
+---
+cs_prepare_url_username: "{{ lookup('env', 'CLOUDSTACK_SIMULATOR_USERNAME') }}"
+cs_prepare_url_password: "{{ lookup('env', 'CLOUDSTACK_SIMULATOR_PASSWORD') }}"
+cs_prepare_api_endpoint: http://cloudstack-sim.renemoser.net
