@@ -242,15 +242,13 @@ rackspace: $(CREDENTIALS_FILE)
     CLOUD_RESOURCE_PREFIX="$(CLOUD_RESOURCE_PREFIX)" make rackspace_cleanup ; \
     exit $$RC;
 
-cloudstack:
-	ansible-playbook cloudstack.yml -i $(INVENTORY) -e @$(VARS_FILE) -e "resource_prefix=$(CLOUD_RESOURCE_PREFIX)" -v $(TEST_FLAGS) ; \
-	RC=$$? ; \
-	exit $$RC;
-
 exoscale:
 	ansible-playbook exoscale.yml -i $(INVENTORY) -e @$(VARS_FILE) -v $(TEST_FLAGS) ; \
 	RC=$$? ; \
 	exit $$RC;
+
+cloudstack:
+	(cd targets/cloudstack && ./runme.sh $(TEST_FLAGS))
 
 jenkins:
 	ansible-playbook jenkins.yml -i $(INVENTORY) -e @$(VARS_FILE) -v $(TEST_FLAGS) ; \
