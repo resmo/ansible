@@ -1,12 +1,51 @@
 ---
-- name: setup
+- name: network setup
+  cs_network:
+    name: ansible test
+    network_offering: DefaultIsolatedNetworkOfferingWithSourceNatService
+    network_domain: example.com
+    zone: "{{ cs_common_zone_adv }}"
+  register: net
+- name: verify network setup
+  assert:
+    that:
+    - net|success
+
+- name: instance setup
+  cs_instance:
+    name: "{{ cs_portforward_vm }}"
+    template: "{{ cs_common_template }}"
+    service_offering: "{{ cs_common_service_offering }}"
+    zone: "{{ cs_common_zone_adv }}"
+  register: instance
+- name: verify instance setup
+  assert:
+    that:
+    - instance|success
+
+- name: public ip address setup
+  cs_ip_address:
+    network: ansible test
+    zone: "{{ cs_common_zone_adv }}"
+  register: ip_address
+- name: verify public ip address setup
+  assert:
+    that:
+    - ip_address|success
+
+- name: set ip address as fact
+  set_fact:
+    cs_portforward_public_ip: "{{ ip_address.ip_address }}"
+
+- name: clear existing port forwarding
   cs_portforward:
     ip_address: "{{ cs_portforward_public_ip }}"
     public_port: 80
     private_port: 8080
     state: absent
+    zone: "{{ cs_common_zone_adv }}"
   register: pf
-- name: verify setup
+- name: verify  clear existing port forwarding
   assert:
     that:
     - pf|success
@@ -27,6 +66,7 @@
     public_port: 80
     vm: "{{ cs_portforward_vm }}"
     private_port: 8080
+    zone: "{{ cs_common_zone_adv }}"
   register: pf
 - name: verify results of present port forwarding
   assert:
@@ -46,6 +86,7 @@
     public_port: 80
     vm: "{{ cs_portforward_vm }}"
     private_port: 8080
+    zone: "{{ cs_common_zone_adv }}"
   register: pf
 - name: verify results of present port forwarding idempotence
   assert:
@@ -65,6 +106,7 @@
     public_port: 80
     vm: "{{ cs_portforward_vm }}"
     private_port: 8888
+    zone: "{{ cs_common_zone_adv }}"
   register: pf
 - name: verify results of change port forwarding
   assert:
@@ -84,6 +126,7 @@
     public_port: 80
     private_port: 8888
     state: absent
+    zone: "{{ cs_common_zone_adv }}"
   register: pf
 - name: verify results of absent port forwarding
   assert:
@@ -103,9 +146,32 @@
     public_port: 80
     private_port: 8888
     state: absent
+    zone: "{{ cs_common_zone_adv }}"
   register: pf
 - name: verify results of absent port forwarding idempotence
   assert:
     that:
     - pf|success
     - not pf|changed
+
+- name: instance cleanup
+  cs_instance:
+    name: "{{ cs_portforward_vm }}"
+    zone: "{{ cs_common_zone_adv }}"
+    state: expunged
+  register: instance
+- name: verify instance cleanup
+  assert:
+    that:
+    - instance|success
+
+- name: network cleanup
+  cs_network:
+    name: ansible test
+    zone: "{{ cs_common_zone_adv }}"
+    state: absent
+  register: net
+- name: verify network cleanup
+  assert:
+    that:
+    - net|success
