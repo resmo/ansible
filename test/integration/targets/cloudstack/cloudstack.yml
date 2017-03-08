@@ -27,3 +27,4 @@
     - { role: test_cs_pod,                  tags: test_cs_pod }
     - { role: test_cs_cluster,              tags: test_cs_cluster }
 #    - { role: test_cs_resourcelimit,        tags: test_cs_resourcelimit }
+    - { role: test_cs_vpc,                  tags: test_cs_vpc }

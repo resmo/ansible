@@ -1,0 +1,136 @@
+---
+- name: setup
+  cs_vpc:
+    name: "{{ cs_resource_prefix }}_vpc"
+    state: absent
+  register: vpc
+- name: verify setup
+  assert:
+    that:
+    - vpc|success
+
+- name: test fail missing name
+  cs_vpc:
+  ignore_errors: true
+  register: vpc
+- name: verify test fail missing name
+  assert:
+    that:
+    - vpc|failed
+    - 'vpc.msg == "missing required arguments: name"'
+
+- name: test fail missing cidr
+  cs_vpc:
+    name: "{{ cs_resource_prefix }}_vpc"
+  ignore_errors: true
+  register: vpc
+- name: verify test fail missing name
+  assert:
+    that:
+    - vpc|failed
+    - 'vpc.msg == "state is present but the following are missing: cidr"'
+
+- name: test create vpc
+  cs_vpc:
+    name: "{{ cs_resource_prefix }}_vpc"
+    display_text: "{{ cs_resource_prefix }}_display_text"
+    cidr: 10.10.0.0/16
+    zone: "{{ cs_common_zone_adv }}"
+  register: vpc
+- name: verify test create vpc
+  assert:
+    that:
+    - vpc|success
+    - vpc|changed
+    - vpc.name == "{{ cs_resource_prefix }}_vpc"
+    - vpc.display_text == "{{ cs_resource_prefix }}_display_text"
+    - vpc.cidr == "10.10.0.0/16"
+
+- name: test create vpc idempotence
+  cs_vpc:
+    name: "{{ cs_resource_prefix }}_vpc"
+    display_text: "{{ cs_resource_prefix }}_display_text"
+    cidr: 10.10.0.0/16
+    zone: "{{ cs_common_zone_adv }}"
+  register: vpc
+- name: verify test create vpc idempotence
+  assert:
+    that:
+    - vpc|success
+    - not vpc|changed
+    - vpc.name == "{{ cs_resource_prefix }}_vpc"
+    - vpc.display_text == "{{ cs_resource_prefix }}_display_text"
+    - vpc.cidr == "10.10.0.0/16"
+
+- name: test create vpc idempotence2
+  cs_vpc:
+    name: "{{ cs_resource_prefix }}_vpc"
+    cidr: 10.10.0.0/16
+    zone: "{{ cs_common_zone_adv }}"
+  register: vpc
+- name: verify test create vpc idempotence
+  assert:
+    that:
+    - vpc|success
+    - not vpc|changed
+    - vpc.name == "{{ cs_resource_prefix }}_vpc"
+    - vpc.display_text == "{{ cs_resource_prefix }}_display_text"
+    - vpc.cidr == "10.10.0.0/16"
+
+- name: test update vpc
+  cs_vpc:
+    name: "{{ cs_resource_prefix }}_vpc"
+    display_text: "{{ cs_resource_prefix }}_display_text2"
+    cidr: 10.10.0.0/16
+    zone: "{{ cs_common_zone_adv }}"
+  register: vpc
+- name: verify test create vpc
+  assert:
+    that:
+    - vpc|success
+    - vpc|changed
+    - vpc.name == "{{ cs_resource_prefix }}_vpc"
+    - vpc.display_text == "{{ cs_resource_prefix }}_display_text2"
+    - vpc.cidr == "10.10.0.0/16"
+
+- name: test update vpc idempotence
+  cs_vpc:
+    name: "{{ cs_resource_prefix }}_vpc"
+    display_text: "{{ cs_resource_prefix }}_display_text2"
+    cidr: 10.10.0.0/16
+    zone: "{{ cs_common_zone_adv }}"
+  register: vpc
+- name: verify test create vpc
+  assert:
+    that:
+    - vpc|success
+    - not vpc|changed
+    - vpc.name == "{{ cs_resource_prefix }}_vpc"
+    - vpc.display_text == "{{ cs_resource_prefix }}_display_text2"
+    - vpc.cidr == "10.10.0.0/16"
+
+- name: test remove vpc
+  cs_vpc:
+    name: "{{ cs_resource_prefix }}_vpc"
+    state: absent
+    zone: "{{ cs_common_zone_adv }}"
+  register: vpc
+- name: verify test create vpc
+  assert:
+    that:
+    - vpc|success
+    - vpc|changed
+    - vpc.name == "{{ cs_resource_prefix }}_vpc"
+    - vpc.display_text == "{{ cs_resource_prefix }}_display_text2"
+    - vpc.cidr == "10.10.0.0/16"
+
+- name: test remove vpc idempotence
+  cs_vpc:
+    name: "{{ cs_resource_prefix }}_vpc"
+    state: absent
+  register: vpc
+- name: verify test create vpc
+  assert:
+    that:
+    - vpc|success
+    - not vpc|changed
