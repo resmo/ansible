@@ -1,8 +1,35 @@
 ---
+- name: network setup
+  cs_network:
+    name: "{{ cs_firewall_network }}"
+    network_offering: DefaultIsolatedNetworkOfferingWithSourceNatService
+    network_domain: example.com
+    zone: "{{ cs_common_zone_adv }}"
+  register: net
+- name: verify network setup
+  assert:
+    that:
+    - net|success
+
+- name: public ip address setup
+  cs_ip_address:
+    network: ansible test
+    zone: "{{ cs_common_zone_adv }}"
+  register: ip_address
+- name: verify public ip address setup
+  assert:
+    that:
+    - ip_address|success
+
+- name: set ip address as fact
+  set_fact:
+    cs_firewall_ip_address: "{{ ip_address.ip_address }}"
+
 - name: setup 80
   cs_firewall:
     port: 80
     ip_address: "{{ cs_firewall_ip_address }}"
+    zone: "{{ cs_common_zone_adv }}"
     state: absent
   register: fw
 - name: verify setup
@@ -17,6 +44,7 @@
     start_port: 5300
     end_port: 5333
     cidr: 1.2.3.4/24
+    zone: "{{ cs_common_zone_adv }}"
     state: absent
   register: fw
 - name: verify setup
@@ -29,6 +57,7 @@
     network: "{{ cs_firewall_network }}"
     protocol: all
     type: egress
+    zone: "{{ cs_common_zone_adv }}"
     state: absent
   register: fw
 - name: verify setup
@@ -44,34 +73,37 @@
   assert:
     that:
     - fw|failed
-    - fw.msg == "missing required argument for protocol 'tcp': start_port or end_port"
+    - "fw.msg == 'one of the following is required: ip_address,network'"
 
-- name: test fail if missing params ip_address ingress
+- name: test fail if missing params
   cs_firewall:
-    port: 80
+    ip_address: "{{ cs_firewall_ip_address }}"
+    zone: "{{ cs_common_zone_adv }}"
   register: fw
   ignore_errors: true
-- name: verify results of fail if missing params ip_address
+- name: verify results of fail if missing params
   assert:
     that:
     - fw|failed
-    - fw.msg == "missing required argument for type ingress: ip_address"
+    - "fw.msg == \"missing required argument for protocol 'tcp': start_port or end_port\""
 
 - name: test fail if missing params network egress
   cs_firewall:
     type: egress
+    zone: "{{ cs_common_zone_adv }}"
   register: fw
   ignore_errors: true
 - name: verify results of fail if missing params ip_address
   assert:
     that:
     - fw|failed
-    - fw.msg == "missing required argument for type egress: network"
+    - "fw.msg == 'one of the following is required: ip_address,network'"
 
 - name: test present firewall rule ingress 80
   cs_firewall:
     port: 80
     ip_address: "{{ cs_firewall_ip_address }}"
+    zone: "{{ cs_common_zone_adv }}"
   register: fw
 - name: verify results of present firewall rule ingress 80
   assert:
@@ -89,6 +121,7 @@
   cs_firewall:
     port: 80
     ip_address: "{{ cs_firewall_ip_address }}"
+    zone: "{{ cs_common_zone_adv }}"
   register: fw
 - name: verify results of present firewall rule ingress 80 idempotence
   assert:
@@ -109,6 +142,7 @@
     start_port: 5300
     end_port: 5333
     cidr: 1.2.3.4/24
+    zone: "{{ cs_common_zone_adv }}"
   register: fw
 - name: verify results of present firewall rule ingress 5300
   assert:
@@ -129,6 +163,7 @@
     start_port: 5300
     end_port: 5333
     cidr: 1.2.3.4/24
+    zone: "{{ cs_common_zone_adv }}"
   register: fw
 - name: verify results of present firewall rule ingress 5300 idempotence
   assert:
@@ -147,6 +182,7 @@
     network: "{{ cs_firewall_network }}"
     protocol: all
     type: egress
+    zone: "{{ cs_common_zone_adv }}"
   register: fw
 - name: verify results of present firewall rule egress all
   assert:
@@ -163,6 +199,7 @@
     network: "{{ cs_firewall_network }}"
     protocol: all
     type: egress
+    zone: "{{ cs_common_zone_adv }}"
   register: fw
 - name: verify results of present firewall rule egress all idempotence
   assert:
@@ -178,6 +215,7 @@
   cs_firewall:
     port: 80
     ip_address: "{{ cs_firewall_ip_address }}"
+    zone: "{{ cs_common_zone_adv }}"
     state: absent
   register: fw
 - name: verify results of absent firewall rule ingress 80
@@ -196,6 +234,7 @@
   cs_firewall:
     port: 80
     ip_address: "{{ cs_firewall_ip_address }}"
+    zone: "{{ cs_common_zone_adv }}"
     state: absent
   register: fw
 - name: verify results of absent firewall rule ingress 80 idempotence
@@ -211,6 +250,7 @@
     start_port: 5300
     end_port: 5333
     cidr: 1.2.3.4/24
+    zone: "{{ cs_common_zone_adv }}"
     state: absent
   register: fw
 - name: verify results of absent firewall rule ingress 5300
@@ -232,6 +272,7 @@
     start_port: 5300
     end_port: 5333
     cidr: 1.2.3.4/24
+    zone: "{{ cs_common_zone_adv }}"
     state: absent
   register: fw
 - name: verify results of absent firewall rule ingress 5300 idempotence
@@ -246,6 +287,7 @@
     protocol: all
     type: egress
     state: absent
+    zone: "{{ cs_common_zone_adv }}"
   register: fw
 - name: verify results of absent firewall rule egress all
   assert:
@@ -262,6 +304,7 @@
     network: "{{ cs_firewall_network }}"
     protocol: all
     type: egress
+    zone: "{{ cs_common_zone_adv }}"
     state: absent
   register: fw
 - name: verify results of absent firewall rule egress all idempotence
@@ -269,3 +312,14 @@
     that:
     - fw|success
     - not fw|changed
+
+- name: network cleanup
+  cs_network:
+    name: "{{ cs_firewall_network }}"
+    zone: "{{ cs_common_zone_adv }}"
+    state: absent
+  register: net
+- name: verify network cleanup
+  assert:
+    that:
+    - net|success
