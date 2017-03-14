@@ -29,7 +29,8 @@
 
 import os
 import time
-from ansible.module_utils.six import iteritems
+from ansible.module_utils.six import integer_types, string_types
+from ansible.module_utils._text import to_text
 
 try:
     from cs import CloudStack, CloudStackException, read_config
@@ -96,7 +97,7 @@ class AnsibleCloudStack(object):
         self.returns = {}
         # these values will be casted to int
         self.returns_to_int = {}
-        # these keys will be compared case sensitive in self.has_changed()
+        # these keys will be compared case sensitive in self.()
         self.case_sensitive_keys = [
             'id',
             'displaytext',
@@ -157,50 +158,35 @@ class AnsibleCloudStack(object):
 
 
     def has_changed(self, want_dict, current_dict, only_keys=None):
-        result = False
+        changed = False
         for key, value in want_dict.items():
-
             # Optionally limit by a list of keys
             if only_keys and key not in only_keys:
                 continue
-
             # Skip None values
             if value is None:
                 continue
-
             if key in current_dict:
-                if isinstance(value, (int, float, long, complex)):
-                    # ensure we compare the same type
-                    if isinstance(value, int):
-                        current_dict[key] = int(current_dict[key])
-                    elif isinstance(value, float):
-                        current_dict[key] = float(current_dict[key])
-                    elif isinstance(value, long):
-                        current_dict[key] = long(current_dict[key])
-                    elif isinstance(value, complex):
-                        current_dict[key] = complex(current_dict[key])
-
+                if isinstance(value, integer_types):
+                    value = int(value)
+                    current_dict[key] = int(current_dict[key])
                     if value != current_dict[key]:
                         self.result['diff']['before'][key] = current_dict[key]
                         self.result['diff']['after'][key] = value
-                        result = True
-                else:
-                    if self.case_sensitive_keys and key in self.case_sensitive_keys:
-                        if value != current_dict[key].encode('utf-8'):
-                            self.result['diff']['before'][key] = current_dict[key].encode('utf-8')
-                            self.result['diff']['after'][key] = value
-                            result = True
-
-                    # Test for diff in case insensitive way
-                    elif value.lower() != current_dict[key].encode('utf-8').lower():
-                        self.result['diff']['before'][key] = current_dict[key].encode('utf-8')
+                        changed = True
+                elif isinstance(value, string_types):
+                    value = to_text(value)
+                    current_dict[key] = to_text(current_dict[key])
+                    if value.lower() != current_dict[key].lower():
+                        self.result['diff']['before'][key] = current_dict[key]
                         self.result['diff']['after'][key] = value
-                        result = True
+                        changed = True
+                else:
+                    self.module.fail_json(msg="Unable to determine comparison for key %s" % key)
             else:
-                self.result['diff']['before'][key] = None
                 self.result['diff']['after'][key] = value
-                result = True
-        return result
+                changed = True
+        return changed
 
 
     def _get_by_key(self, key=None, my_dict=None):
