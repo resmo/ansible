@@ -8,7 +8,7 @@
 
 - name: wait for docker image has started
   wait_for:
-    port: 8888
+    port: "{{ cs_prepare_api_port }}"
 
 - name: download API keys
   local_action:
