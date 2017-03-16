@@ -17,6 +17,7 @@
     template: "{{ cs_common_template }}"
     service_offering: "{{ cs_common_service_offering }}"
     zone: "{{ cs_common_zone_adv }}"
+    network: "ansible test"
   register: instance
 - name: verify instance setup
   assert:
