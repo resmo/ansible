@@ -20,9 +20,11 @@
   retries: 200
   delay: 6
   ignore_errors: yes
+  no_log: true
 
 - name: create cloudstack.ini of API keys as vars
   local_action:
     module: template
     src: cloudstack.ini.j2
     dest: ./cloudstack.ini
+  no_log: true
