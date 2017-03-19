@@ -173,7 +173,7 @@
     - instance.name == "{{ cs_resource_prefix }}-vm-vpc"
     - instance.state == "Running"
 
-- name : test get ip address in vpc
+- name: test get ip address in vpc
   cs_ip_address:
     network: "{{ cs_resource_prefix }}_net_vpc"
     vpc: "{{ cs_resource_prefix }}_vpc"
