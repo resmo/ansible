@@ -47,6 +47,15 @@ CS_HYPERVISORS = [
     'Simulator', 'simulator',
 ]
 
+CS_TEMPLATE_FILTERS = [
+    'featured',
+    'self',
+    'selfexecutable',
+    'sharedexecutable',
+    'executable',
+    'community'
+]
+
 
 def cs_argument_spec():
     return dict(
