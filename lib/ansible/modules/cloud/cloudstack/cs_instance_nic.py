@@ -200,20 +200,20 @@ class AnsibleCloudStackInstanceNic(AnsibleCloudStack):
                 self.nic = vm['nic'][0]
         return self.nic
 
-    def remove_nic(self):
+    def remove_nic(self, nic):
         self.result['changed'] = True
         args = {
             'virtualmachineid': self.get_vm(key='id'),
-            'nicid': self.get_nic()['id'],
+            'nicid': nic['id'],
         }
         if not self.module.check_mode:
             res = self.cs.removeNicFromVirtualMachine(**args)
             if 'errortext' in res:
                 self.module.fail_json(msg="Failed: '%s'" % res['errortext'])
-        return self.nic
 
             if self.module.params.get('poll_async'):
                 self.poll_job(res, 'virtualmachine')
+        return nic
 
     def present_nic(self):
         nic = self.get_nic()
@@ -224,8 +224,8 @@ class AnsibleCloudStackInstanceNic(AnsibleCloudStack):
     def absent_nic(self):
         nic = self.get_nic()
         if nic:
-            return self.remove_nic()
-        return self.nic
+            return self.remove_nic(nic)
+        return nic
 
     def get_result(self, nic):
         super(AnsibleCloudStackInstanceNic, self).get_result(nic)
@@ -273,6 +273,7 @@ def main():
         module.fail_json(msg='CloudStackException: %s' % str(e))
 
     module.exit_json(**result)
+
 
 if __name__ == '__main__':
     main()
