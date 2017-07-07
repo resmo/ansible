@@ -195,8 +195,9 @@ class AnsibleCloudStackInstanceNic(AnsibleCloudStack):
             if 'errortext' in res:
                 self.module.fail_json(msg="Failed: '%s'" % res['errortext'])
 
-            vm = self.poll_job(res, 'virtualmachine')
-            self.nic = vm['nic'][0]
+            if self.module.params.get('poll_async'):
+                vm = self.poll_job(res, 'virtualmachine')
+                self.nic = vm['nic'][0]
         return self.nic
 
     def remove_nic(self):
@@ -210,6 +211,9 @@ class AnsibleCloudStackInstanceNic(AnsibleCloudStack):
             if 'errortext' in res:
                 self.module.fail_json(msg="Failed: '%s'" % res['errortext'])
         return self.nic
+
+            if self.module.params.get('poll_async'):
+                self.poll_job(res, 'virtualmachine')
 
     def present_nic(self):
         nic = self.get_nic()
