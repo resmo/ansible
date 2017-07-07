@@ -41,6 +41,13 @@ options:
     description:
       - Name of the network.
     required: true
+  ip_address:
+    description:
+      - IP address to be used as default for the nic.
+      - Only considered while creating the nic.
+      - See M(cs_instance_ipaddress) for managing IP addresses.
+    required: false
+    default: null
   vpc:
     description:
       - Name of the VPC the C(vm) is related to.
@@ -181,6 +188,7 @@ class AnsibleCloudStackInstanceNic(AnsibleCloudStack):
         args = {
             'virtualmachineid': self.get_vm(key='id'),
             'networkid': self.get_network(key='id'),
+            'ipaddress': self.module.params.get('ip_address'),
         }
         if not self.module.check_mode:
             res = self.cs.addNicToVirtualMachine(**args)
@@ -230,6 +238,7 @@ def main():
         vm=dict(required=True, aliases=['name']),
         network=dict(required=True),
         vpc=dict(default=None),
+        ip_address=dict(),
         state=dict(choices=['present', 'absent'], default='present'),
         domain=dict(default=None),
         account=dict(default=None),
