@@ -5,7 +5,7 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 DOCUMENTATION = """
-    lookup: cartesian
+    lookup: consul_kv
     version_added: "1.9"
     short_description: grab metadata from a consul key value store.
     description:
