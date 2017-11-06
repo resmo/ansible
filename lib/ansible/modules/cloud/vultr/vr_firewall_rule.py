@@ -43,12 +43,12 @@ options:
   start_port:
     description:
       - Start port for the firewall rule.
-      - Required if C(protocol) is tcp or udp.
+      - Required if C(protocol) is tcp or udp and C(state=present).
     aliases: [ port ]
   end_port:
     description:
       - End port for the firewall rule.
-      - Only considered if C(protocol) is tcp or udp.
+      - Only considered if C(protocol) is tcp or udp and C(state=present).
   state:
     description:
       - State of the firewall rule.
@@ -67,12 +67,14 @@ EXAMPLES = '''
     end_port: 9000
     cidr: 17.17.17.0/24
 
-- name: open DNS port
+- name: open DNS port for all ipv4 and ipv6
   local_action:
     module: vr_firewall_rule
     group: dns
     protocol: udp
     port: 53
+    ip_version: "{{ item }}"
+  with_items: [ v4. v6 ]
 
 - name: allow ping
   local_action:
@@ -164,18 +166,16 @@ class AnsibleVultrFirewallRule(Vultr):
 
         return cidr.split('/')
 
-
-
     def get_firewall_rule(self):
         ip_version = self.module.params.get('ip_version')
-        firewall_group = self.get_firewall_group()
+        firewall_group_id = self.get_firewall_group()['FIREWALLGROUPID']
 
         firewall_rules = self.api_query(
             path="/v1/firewall/rule_list"
                  "?FIREWALLGROUPID=%s"
                  "&direction=in"
                  "&ip_type=%s"
-                 % (firewall_group, ip_version))
+                 % (firewall_group_id, ip_version))
 
         if firewall_rules:
             subnet, subnet_size = self._transform_cidr()
@@ -187,22 +187,22 @@ class AnsibleVultrFirewallRule(Vultr):
                 if ip_version == 'v4' and (firewall_rule_data.get('subnet') or "0.0.0.0") != subnet:
                     continue
 
-                if ip_version == 'v6' and (firewall_rule_data.get('subnet') or "::/0") != subnet:
+                if ip_version == 'v6' and (firewall_rule_data.get('subnet') or "::") != subnet:
                     continue
 
-                if firewall_rule_data.get('subnet_size') != subnet_size:
+                if int(firewall_rule_data.get('subnet_size')) != int(subnet_size):
                     continue
 
                 if firewall_rule_data.get('protocol') in ['tcp', 'udp']:
                     # Port range "8000 - 8080" from the API
                     if '-' in firewall_rule_data.get('port'):
-                        port_range = "%s - %s" % (self.module.params.get('start_port'), self.module.params.get('start_port'))
+                        port_range = "%s - %s" % (self.module.params.get('start_port'), self.module.params.get('end_port'))
                         if firewall_rule_data.get('port') == port_range:
                             return firewall_rule_data
                     # Single port
                     elif int(firewall_rule_data.get('port')) == self.module.params.get('start_port'):
                         return firewall_rule_data
-                else:
+
                     return firewall_rule_data
         return {}
 
@@ -213,13 +213,32 @@ class AnsibleVultrFirewallRule(Vultr):
         return firewall_rule
 
     def _create_firewall_rule(self, firewall_rule):
+        protocol = self.module.params.get('protocol')
+        if protocol in ['tcp', 'udp']:
+            start_port = self.module.params.get('start_port')
+            end_port = self.module.params.get('end_port')
+            if not start_port:
+                self.module.fail_on_missing_params(['start_port'])
+            else:
+                if end_port:
+                    port_range = "%s:%s" % (start_port. end_port)
+                else:
+                    port_range = start_port
+        else:
+            port_range = None
+
         self.result['changed'] = True
+
+        subnet, subnet_size = self._transform_cidr()
+
         data = {
             'FIREWALLGROUPID': self.get_firewall_group()['FIREWALLGROUPID'],
-            'direction': 'in',
+            'direction': 'in',  # currently the only option
             'ip_type': self.module.params.get('ip_version'),
-            'protocol': self.module.params.get('protocol'),
-            'subnet': self.module.params.get('subnet'),
+            'protocol': protocol,
+            'subnet': subnet,
+            'subnet_size': subnet_size,
+            'port': port_range
         }
         self.result['diff']['before'] = {}
         self.result['diff']['after'] = data
@@ -239,7 +258,7 @@ class AnsibleVultrFirewallRule(Vultr):
             self.result['changed'] = True
 
             data = {
-                'FIREWALLGROUPID': firewall_rule['FIREWALLGROUPID'],
+                'FIREWALLGROUPID': self.get_firewall_group()['FIREWALLGROUPID'],
                 'rulenumber': firewall_rule['rulenumber']
             }
 
@@ -261,9 +280,9 @@ def main():
         group=dict(required=True),
         start_port=dict(type='int', aliases=['port']),
         end_port=dict(type='int'),
-        protocol=dict(choices=['tcp', 'upd', 'gre', 'icmp']),
+        protocol=dict(choices=['tcp', 'upd', 'gre', 'icmp'], default='tcp'),
         cidr=dict(default='0.0.0.0/0'),
-        ip_version=dict(choices=['ipv4', 'ipv6'], default='ipv4'),
+        ip_version=dict(choices=['v4', 'v6'], default='v4'),
         state=dict(choices=['present', 'absent'], default='present'),
     ))
 
