@@ -40,6 +40,7 @@ options:
       - Network in CIDR format
       - The CIDR format must match with the C(ip_type) value.
       - Required if C(state=present).
+    default: 0.0.0.0/0 or ::/0 depending on C(ip_version)
   start_port:
     description:
       - Start port for the firewall rule.
@@ -138,6 +139,9 @@ class AnsibleVultrFirewallRule(Vultr):
             'rulenumber': dict(key='rule_number'),
             'action': dict(),
             'protocol': dict(),
+            'start_port': dict(convert_to='int'),
+            'end_port': dict(convert_to='int'),
+            'cidr': dict(),
         }
         self.firewall_group = None
 
@@ -158,11 +162,11 @@ class AnsibleVultrFirewallRule(Vultr):
         ip_version = self.module.params.get('ip_version')
         if cidr is None:
             if ip_version == "v6":
-                cidr == "::/0"
+                cidr = "::/0"
             else:
-                cidr == "0.0.0.0/0"
+                cidr = "0.0.0.0/0"
         elif cidr.count('/') != 1:
-                self.fail_json(msg="CIDR seems invalid: %s" % cidr)
+                self.fail_json(msg="CIDR has an invalid format: %s" % cidr)
 
         return cidr.split('/')
 
@@ -194,16 +198,24 @@ class AnsibleVultrFirewallRule(Vultr):
                     continue
 
                 if firewall_rule_data.get('protocol') in ['tcp', 'udp']:
+                    rule_port = firewall_rule_data.get('port')
+
+                    end_port = self.module.params.get('end_port')
+                    start_port = self.module.params.get('start_port')
+
+                    if '-' in rule_port and end_port is None:
+                        continue
+
                     # Port range "8000 - 8080" from the API
-                    if '-' in firewall_rule_data.get('port'):
-                        port_range = "%s - %s" % (self.module.params.get('start_port'), self.module.params.get('end_port'))
-                        if firewall_rule_data.get('port') == port_range:
+                    if '-' in rule_port:
+                        port_range = "%s - %s" % (start_port, end_port)
+                        if rule_port == port_range:
                             return firewall_rule_data
+
                     # Single port
-                    elif int(firewall_rule_data.get('port')) == self.module.params.get('start_port'):
+                    elif int(rule_port) == start_port:
                         return firewall_rule_data
 
-                    return firewall_rule_data
         return {}
 
     def present_firewall_rule(self):
@@ -216,14 +228,19 @@ class AnsibleVultrFirewallRule(Vultr):
         protocol = self.module.params.get('protocol')
         if protocol in ['tcp', 'udp']:
             start_port = self.module.params.get('start_port')
-            end_port = self.module.params.get('end_port')
-            if not start_port:
+
+            if start_port is None:
                 self.module.fail_on_missing_params(['start_port'])
+
+            end_port = self.module.params.get('end_port')
+            if end_port is not None:
+
+                if start_port >= end_port:
+                    self.module.fail_json(msg="end_port must be higher than start_port")
+
+                port_range = "%s:%s" % (start_port, end_port)
             else:
-                if end_port:
-                    port_range = "%s:%s" % (start_port. end_port)
-                else:
-                    port_range = start_port
+                port_range = start_port
         else:
             port_range = None
 
@@ -273,6 +290,17 @@ class AnsibleVultrFirewallRule(Vultr):
                 )
         return firewall_rule
 
+    def get_result(self, resource):
+        if resource:
+            if 'port' in resource:
+                if '-' in resource['port']:
+                    resource['start_port'], resource['end_port'] = resource['port'].split(' - ')
+                else:
+                    resource['start_port'] = resource['port']
+            if 'subnet' in resource:
+                resource['cidr'] = "%s/%s" % (resource['subnet'], resource['subnet_size'])
+        return super(AnsibleVultrFirewallRule, self).get_result(resource)
+
 
 def main():
     argument_spec = vultr_argument_spec()
@@ -280,8 +308,8 @@ def main():
         group=dict(required=True),
         start_port=dict(type='int', aliases=['port']),
         end_port=dict(type='int'),
-        protocol=dict(choices=['tcp', 'upd', 'gre', 'icmp'], default='tcp'),
-        cidr=dict(default='0.0.0.0/0'),
+        protocol=dict(choices=['tcp', 'udp', 'gre', 'icmp'], default='tcp'),
+        cidr=dict(),
         ip_version=dict(choices=['v4', 'v6'], default='v4'),
         state=dict(choices=['present', 'absent'], default='present'),
     ))
