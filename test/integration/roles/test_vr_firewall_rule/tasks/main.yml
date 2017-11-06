@@ -1,92 +1,67 @@
 ---
-- name: setup
+- name: setup firewall group
   local_action:
     module: vr_firewall_group
     name: "{{ vr_firewall_group_name }}"
-    state: absent
   register: result
-- name: verify setup
+- name: verify setup firewall group
   assert:
     that:
     - result|success
 
-- name: test fail if missing name
+- name: setup firewall rule
   local_action:
-    module: vr_firewall_group
+    module: vr_firewall_rule
+    group: "{{ vr_firewall_group_name }}"
+    port: 53
+    state: absent
+  register: result
+- name: verify setup firewal rule
+  assert:
+    that:
+    - result|changed
+
+- name: test fail if missing group
+  local_action:
+    module: vr_firewall_rule
   register: result
   ignore_errors: true
-- name: verify test fail if missing name
+- name: verify test fail if missing group
   assert:
     that:
     - result|failed
-    - 'result.msg == "missing required arguments: name"'
+    - 'result.msg == "missing required arguments: group"'
 
-- name: test create firewall group in check mode
+- name: test create firewall rule in check mode
   local_action:
-    module: vr_firewall_group
-    name: "{{ vr_firewall_group_name }}"
+    module: vr_firewall_rule
+    group: "{{ vr_firewall_group_name }}"
+    port: 53
   register: result
   check_mode: true
-- name: verify test create firewall group in check mode
+- name: verify test create firewall rule in check mode
   assert:
     that:
     - result|changed
 
-- name: test create firewall group
+- name: test create firewall rule
   local_action:
-    module: vr_firewall_group
-    name: "{{ vr_firewall_group_name }}"
+    module: vr_firewall_rule
+    group: "{{ vr_firewall_group_name }}"
+    port: 53
   register: result
-- name: verify test create firewall group
+- name: verify test create firewall rule
   assert:
     that:
     - result|changed
-    - result.vultr_firewall_group.name == '{{ vr_firewall_group_name }}'
 
-- name: test create firewall group idempotence
+- name: test create firewall rule idempotence
   local_action:
-    module: vr_firewall_group
-    name: "{{ vr_firewall_group_name }}"
-
+    module: vr_firewall_rule
+    group: "{{ vr_firewall_group_name }}"
+    port: 53
   register: result
-- name: verify test create firewall group idempotence
-  assert:
-    that:
-    - not result|changed
-    - result.vultr_firewall_group.name == '{{ vr_firewall_group_name }}'
-
-- name: test absent firewall group in check mode
-  local_action:
-    module: vr_firewall_group
-    name: "{{ vr_firewall_group_name }}"
-    state: absent
-  register: result
-  check_mode: true
-- name: verify test absent firewall group in check mode
-  assert:
-    that:
-    - result|changed
-    - result.vultr_firewall_group.name == '{{ vr_firewall_group_name }}'
-
-- name: test absent firewall group
-  local_action:
-    module: vr_firewall_group
-    name: "{{ vr_firewall_group_name }}"
-    state: absent
-  register: result
-- name: verify test absent firewall group
-  assert:
-    that:
-    - result|changed
-    - result.vultr_firewall_group.name == '{{ vr_firewall_group_name }}'
-
-- name: test absent firewall group idempotence
-  local_action:
-    module: vr_firewall_group
-    name: "{{ vr_firewall_group_name }}"
-    state: absent
-  register: result
-- name: verify test absent firewall group idempotence
+- name: verify test create firewall rule idempotence
   assert:
     that:
     - not result|changed
