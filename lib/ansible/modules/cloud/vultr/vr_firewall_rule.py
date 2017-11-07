@@ -203,11 +203,11 @@ class AnsibleVultrFirewallRule(Vultr):
                     end_port = self.module.params.get('end_port')
                     start_port = self.module.params.get('start_port')
 
-                    if '-' in rule_port and end_port is None:
-                        continue
-
                     # Port range "8000 - 8080" from the API
                     if '-' in rule_port:
+                        if end_port is None:
+                            continue
+
                         port_range = "%s - %s" % (start_port, end_port)
                         if rule_port == port_range:
                             return firewall_rule_data
