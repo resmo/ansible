@@ -133,12 +133,12 @@ vultr_firewall_rule:
       sample: tcp
     start_port:
       description: Start port of the firewall rule
-      returned: success
+      returned: success and protocol is tcp or udp
       type: int
       sample: 80
     end_port:
       description: End port of the firewall rule
-      returned: success and when port range
+      returned: success and when port range and protocol is tcp or udp
       type: int
       sample: 8080
     cidr:
@@ -235,7 +235,7 @@ class AnsibleVultrFirewallRule(Vultr):
                     start_port = self.module.params.get('start_port')
 
                     # Port range "8000 - 8080" from the API
-                    if '-' in rule_port:
+                    if ' - ' in rule_port:
                         if end_port is None:
                             continue
 
@@ -246,6 +246,9 @@ class AnsibleVultrFirewallRule(Vultr):
                     # Single port
                     elif int(rule_port) == start_port:
                         return firewall_rule_data
+
+                else:
+                    return firewall_rule_data
 
         return {}
 
@@ -323,8 +326,8 @@ class AnsibleVultrFirewallRule(Vultr):
 
     def get_result(self, resource):
         if resource:
-            if 'port' in resource:
-                if '-' in resource['port']:
+            if 'port' in resource and resource['protocol'] in ['tcp', 'udp']:
+                if ' - ' in resource['port']:
                     resource['start_port'], resource['end_port'] = resource['port'].split(' - ')
                 else:
                     resource['start_port'] = resource['port']
