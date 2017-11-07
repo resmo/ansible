@@ -64,6 +64,18 @@
     that:
     - result|success
 
+- name: setup firewall rule icmp
+  local_action:
+    module: vr_firewall_rule
+    group: "{{ vr_firewall_group_name }}"
+    protocol: icmp
+    state: absent
+  register: result
+- name: verify setup firewal rule
+  assert:
+    that:
+    - result|success
+
 - name: test fail if missing group
   local_action:
     module: vr_firewall_rule
@@ -262,6 +274,85 @@
     - result.vultr_firewall_rule.start_port == 8000
     - result.vultr_firewall_rule.end_port == 8080
     - result.vultr_firewall_rule.cidr == "10.100.12.0/24"
+
+- name: test create firewall rule icmp in check mode
+  local_action:
+    module: vr_firewall_rule
+    group: "{{ vr_firewall_group_name }}"
+    protocol: icmp
+  register: result
+  check_mode: true
+- name: test create firewall rule icmp in check mode
+  assert:
+    that:
+    - result|changed
+
+- name: test create firewall rule icmp
+  local_action:
+    module: vr_firewall_rule
+    group: "{{ vr_firewall_group_name }}"
+    protocol: icmp
+  register: result
+- name: test create firewall rule icmp
+  assert:
+    that:
+    - result|changed
+    - result.vultr_firewall_rule.action == "accept"
+    - result.vultr_firewall_rule.protocol == "icmp"
+
+- name: test create firewall rule icmp idempotence
+  local_action:
+    module: vr_firewall_rule
+    group: "{{ vr_firewall_group_name }}"
+    protocol: icmp
+  register: result
+- name: test create firewall rule icmp idempotence
+  assert:
+    that:
+    - not result|changed
+    - result.vultr_firewall_rule.action == "accept"
+    - result.vultr_firewall_rule.protocol == "icmp"
+
+- name: test remove firewall rule icmp in check mode
+  local_action:
+    module: vr_firewall_rule
+    group: "{{ vr_firewall_group_name }}"
+    protocol: icmp
+    state: absent
+  register: result
+  check_mode: true
+- name: test remove firewall rule icmp in check mode
+  assert:
+    that:
+    - result|changed
+    - result.vultr_firewall_rule.action == "accept"
+    - result.vultr_firewall_rule.protocol == "icmp"
+
+- name: test remove firewall rule icmp
+  local_action:
+    module: vr_firewall_rule
+    group: "{{ vr_firewall_group_name }}"
+    protocol: icmp
+    state: absent
+  register: result
+- name: test remove firewall rule icmp
+  assert:
+    that:
+    - result|changed
+    - result.vultr_firewall_rule.action == "accept"
+    - result.vultr_firewall_rule.protocol == "icmp"
+
+- name: test remove firewall rule icmp idempotence
+  local_action:
+    module: vr_firewall_rule
+    group: "{{ vr_firewall_group_name }}"
+    protocol: icmp
+    state: absent
+  register: result
+- name: test remove firewall rule icmp idempotence
+  assert:
+    that:
+    - not result|changed
 
 - name: test remove firewall rule tcp in check mode
   local_action:
