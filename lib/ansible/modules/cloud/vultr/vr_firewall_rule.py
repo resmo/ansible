@@ -116,11 +116,41 @@ vultr_firewall_rule:
   returned: success
   type: complex
   contains:
-    id:
-      description: ID of the firewall rule
+    rule_number:
+      description: Rule number of the firewall rule
+      returned: success
+      type: int
+      sample: 2
+    action:
+      description: Action of the firewall rule
       returned: success
       type: string
-      sample: 1234abcd
+      sample: accept
+    protocol:
+      description: Protocol of the firewall rule
+      returned: success
+      type: string
+      sample: tcp
+    start_port:
+      description: Start port of the firewall rule
+      returned: success
+      type: int
+      sample: 80
+    end_port:
+      description: End port of the firewall rule
+      returned: success and when port range
+      type: int
+      sample: 8080
+    cidr:
+      description: CIDR of the firewall rule (IPv4 or IPv6)
+      returned: success and when port range
+      type: string
+      sample: 0.0.0.0/0
+    group:
+      description: Firewall group the rule is into.
+      returned: success
+      type: string
+      sample: web
 '''
 
 from ansible.module_utils.basic import AnsibleModule
@@ -142,6 +172,7 @@ class AnsibleVultrFirewallRule(Vultr):
             'start_port': dict(convert_to='int'),
             'end_port': dict(convert_to='int'),
             'cidr': dict(),
+            'group': dict(),
         }
         self.firewall_group = None
 
@@ -299,6 +330,7 @@ class AnsibleVultrFirewallRule(Vultr):
                     resource['start_port'] = resource['port']
             if 'subnet' in resource:
                 resource['cidr'] = "%s/%s" % (resource['subnet'], resource['subnet_size'])
+            resource['group'] = self.get_firewall_group()['description']
         return super(AnsibleVultrFirewallRule, self).get_result(resource)
 
 
