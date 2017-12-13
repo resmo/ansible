@@ -1,0 +1,10 @@
+---
+- hosts: localhost
+  gather_facts: yes
+  pre_tasks:
+    - shell: nc -z -w5 localhost 8086 || docker run --name influxdb-ansible-test -d -p 8086:8086 influxdb
+  roles:
+    - { role: test_influxdb, tags: test_influxdb }
+  post_tasks:
+    - debug:
+        msg: "Don't forget to remove running docker image: docker rm -f influxdb-ansible-test"
