@@ -46,13 +46,17 @@ options:
       - If not set, first found service offering is used.
   cpu:
     description:
-      - The number of CPUs to allocate to the instance, used with custom service offerings
+      - The number of CPUs to allocate to the instance, used with custom service offerings.
   cpu_speed:
     description:
-      - The clock speed/shares allocated to the instance, used with custom service offerings
+      - The clock speed/shares allocated to the instance, used with custom service offerings.
   memory:
     description:
-      - The memory allocated to the instance, used with custom service offerings
+      - The memory allocated to the instance, used with custom service offerings.
+  details:
+    description:
+      - Custom paramaters used for this instance.
+    version_added: 2.6
   template:
     description:
       - Name, display text or id of the template to be used for creating the new instance.
@@ -275,6 +279,11 @@ domain:
   returned: success
   type: string
   sample: example domain
+details:
+  description: Instance details as key value paris
+  returned: success
+  type: dict
+  sample:
 account:
   description: Account the instance is related to.
   returned: success
@@ -608,7 +617,7 @@ class AnsibleCloudStackInstance(AnsibleCloudStack):
             user_data = to_text(base64.b64encode(to_bytes(user_data)))
         return user_data
 
-    def get_details(self):
+    def _get_instance_details(self):
         res = None
         cpu = self.module.params.get('cpu')
         cpu_speed = self.module.params.get('cpu_speed')
@@ -620,6 +629,16 @@ class AnsibleCloudStackInstance(AnsibleCloudStack):
                 'memory': memory,
             }]
         return res
+
+    def get_details(self):
+        details = self.module.params.get('details')
+        instance_details = self._get_instance_details()
+        if instance_details:
+            if details is not None:
+                details.update(instance_details)
+            else:
+                details = instance_details
+        return details
 
     def deploy_instance(self, start_vm=True):
         self.result['changed'] = True
@@ -909,6 +928,7 @@ def main():
         zone=dict(),
         ssh_key=dict(),
         force=dict(type='bool', default=False),
+        details=dict(type='list', aliases=['detail']),
         tags=dict(type='list', aliases=['tag']),
         poll_async=dict(type='bool', default=True),
     ))
@@ -926,6 +946,7 @@ def main():
         ),
         mutually_exclusive=(
             ['template', 'iso'],
+            ['detail', 'cpu']
         ),
         supports_check_mode=True
     )

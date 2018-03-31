@@ -1,0 +1,93 @@
+---
+- name: test add details to instance in check mode
+  cs_instance:
+    name: "{{ cs_resource_prefix }}-vm-{{ instance_number }}"
+    template: "{{ test_cs_instance_template }}"
+    service_offering: "{{ test_cs_instance_offering_1 }}"
+    details:
+     - { rootDiskController: lsilogic }
+     - { dataDiskController: osdefault }
+  register: instance
+  check_mode: yes
+- name: verify add details to instance in check mode
+  assert:
+    that:
+    - instance is changed
+    - not instance.details
+
+- name: test add details to instance
+  cs_instance:
+    name: "{{ cs_resource_prefix }}-vm-{{ instance_number }}"
+    template: "{{ test_cs_instance_template }}"
+    service_offering: "{{ test_cs_instance_offering_1 }}"
+    details:
+     - { rootDiskController: lsilogic }
+     - { dataDiskController: osdefault }
+  register: instance
+- name: verify add details to instance
+  assert:
+    that:
+    - instance is changed
+    - instance.details is defined
+
+
+- name: test add details to instance idempotence
+  cs_instance:
+    name: "{{ cs_resource_prefix }}-vm-{{ instance_number }}"
+    template: "{{ test_cs_instance_template }}"
+    service_offering: "{{ test_cs_instance_offering_1 }}"
+    details:
+     - { rootDiskController: lsilogic }
+     - { dataDiskController: osdefault }
+  register: instance
+- name: verify add details to instance idempotence
+  assert:
+    that:
+    - instance is not changed
+    - instance.details is defined
+
+- name: test update details to instance in check mode
+  cs_instance:
+    name: "{{ cs_resource_prefix }}-vm-{{ instance_number }}"
+    template: "{{ test_cs_instance_template }}"
+    service_offering: "{{ test_cs_instance_offering_1 }}"
+    details:
+     - { rootDiskController: osdefault }
+     - { dataDiskController: osdefault }
+  register: instance
+  check_mode: yes
+- name: verify update details to instance in check mode
+  assert:
+    that:
+    - instance is changed
+    - instance.details is defined
+
+- name: test update details to instance
+  cs_instance:
+    name: "{{ cs_resource_prefix }}-vm-{{ instance_number }}"
+    template: "{{ test_cs_instance_template }}"
+    service_offering: "{{ test_cs_instance_offering_1 }}"
+    details:
+     - { rootDiskController: osdefault }
+     - { dataDiskController: osdefault }
+  register: instance
+- name: verify update details to instance
+  assert:
+    that:
+    - instance is changed
+    - instance.details is defined
+
+- name: test update details to instance idempotence
+  cs_instance:
+    name: "{{ cs_resource_prefix }}-vm-{{ instance_number }}"
+    template: "{{ test_cs_instance_template }}"
+    service_offering: "{{ test_cs_instance_offering_1 }}"
+    details:
+     - { rootDiskController: osdefault }
+     - { dataDiskController: osdefault }
+  register: instance
+- name: verify update details to instance idempotence
+  assert:
+    that:
+    - instance is not changed
+    - instance.details is defined

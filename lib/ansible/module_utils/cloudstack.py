@@ -77,6 +77,8 @@ class AnsibleCloudStack:
             'displaytext': 'display_text',
             'displayname': 'display_name',
             'description': 'description',
+            'tags': 'tags',
+            'details': 'details',
         }
 
         # Init returns dict for use in subclasses
@@ -543,53 +545,82 @@ class AnsibleCloudStack:
                     return self._get_by_key(key, self.domain)
         self.fail_json(msg="Domain '%s' not found" % domain)
 
-    def query_tags(self, resource, resource_type):
-        args = {
-            'resourceids': resource['id'],
-            'resourcetype': resource_type,
-        }
-        tags = self.query_api('listTags', **args)
-        return self.get_tags(resource=tags, key='tag')
+    def _get_minimalized_metadata_from_resource(self, resource, metadata_type='tags'):
+        res = []
+        for item in resource.get(metadata_type) or []:
+            res.append({'key': item['key'], 'value': item['value']})
+        return res
 
-    def get_tags(self, resource=None, key='tags'):
-        existing_tags = []
-        for tag in resource.get(key) or []:
-            existing_tags.append({'key': tag['key'], 'value': tag['value']})
-        return existing_tags
-
-    def _process_tags(self, resource, resource_type, tags, operation="create"):
-        if tags:
+    def _process_metadata(self, resource, resource_type, meta_data_list, meta_data_type, operation):
+        if meta_data_list:
             self.result['changed'] = True
             if not self.module.check_mode:
                 args = {
                     'resourceids': resource['id'],
                     'resourcetype': resource_type,
-                    'tags': tags,
+                    meta_data_type: meta_data_list,
                 }
-                if operation == "create":
-                    response = self.query_api('createTags', **args)
-                else:
-                    response = self.query_api('deleteTags', **args)
+                response = self.query_api(operation, **args)
                 self.poll_job(response)
 
-    def _tags_that_should_exist_or_be_updated(self, resource, tags):
-        existing_tags = self.get_tags(resource)
-        return [tag for tag in tags if tag not in existing_tags]
+    def _ensure_resource_metadata(self, resource, resource_type=None, metadata_attributes=dict()):
+        if not resource_type or not resource:
+            self.fail_json(msg="Error: Missing resource or resource_type for %s." % metadata_attributes['type'])
 
-    def _tags_that_should_not_exist(self, resource, tags):
-        existing_tags = self.get_tags(resource)
-        return [tag for tag in existing_tags if tag not in tags]
+        if metadata_attributes['type'] in resource:
+            wanted_metadata_list = self.module.params.get(metadata_attributes['type'])
+            if wanted_metadata_list is not None:
+                current_metadata_list = self._get_minimalized_metadata_from_resource(resource, metadata_attributes['type'])
+
+                self.result['diff']['before'][metadata_attributes['type']] = current_metadata_list
+                self.result['diff']['after'][metadata_attributes['type']] = wanted_metadata_list
+
+                metadata_absent_list = [i for i in current_metadata_list if i not in wanted_metadata_list]
+
+                self._process_metadata(
+                    resource,
+                    resource_type,
+                    metadata_absent_list,
+                    metadata_attributes['type'],
+                    metadata_attributes['create_operation'])
+
+                metadata_present_list = [i for i in wanted_metadata_list if i not in current_metadata_list]
+
+                self._process_metadata(
+                    resource,
+                    resource_type,
+                    metadata_present_list,
+                    metadata_attributes['type'],
+                    metadata_attributes['delete_operation'])
 
     def ensure_tags(self, resource, resource_type=None):
-        if not resource_type or not resource:
-            self.fail_json(msg="Error: Missing resource or resource_type for tags.")
+        metadata_attributes = {
+            'type': 'tags',
+            'create_operation': 'createTags',
+            'delete_operation': 'deleteTags'
+        }
+        self._ensure_resource_metadata(resource, resource_type, metadata_attributes)
+        args = {
+            'resourceid': resource['id'],
+            'resourcetype': resource_type,
+        }
+        tags = self.query_api('listTags', **args)
+        resource['tags'] = self._get_minimalized_metadata_from_resource(tags, 'tag')
+        return resource
 
-        if 'tags' in resource:
-            tags = self.module.params.get('tags')
-            if tags is not None:
-                self._process_tags(resource, resource_type, self._tags_that_should_not_exist(resource, tags), operation="delete")
-                self._process_tags(resource, resource_type, self._tags_that_should_exist_or_be_updated(resource, tags))
-                resource['tags'] = self.query_tags(resource=resource, resource_type=resource_type)
+    def ensure_details(self, resource, resource_type=None):
+        metadata_attributes = {
+            'type': 'details',
+            'create_operation': 'addResourceDetail',
+            'delete_operation': 'removeResourceDetail'
+        }
+        self._ensure_resource_metadata(resource, resource_type, metadata_attributes)
+        args = {
+            'resourceid': resource['id'],
+            'resourcetype': resource_type,
+        }
+        details = self.query_api('listResourceDetails', **args)
+        resource['details'] = self._get_minimalized_metadata_from_resource(details, 'resourcedetail')
         return resource
 
     def get_capabilities(self, key=None):
@@ -628,8 +659,6 @@ class AnsibleCloudStack:
                 if search_key in resource:
                     self.result[return_key] = int(resource[search_key])
 
-            if 'tags' in resource:
-                self.result['tags'] = resource['tags']
         return self.result
 
     def get_result_and_facts(self, facts_name, resource):
