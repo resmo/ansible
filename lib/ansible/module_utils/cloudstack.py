@@ -557,6 +557,7 @@ class AnsibleCloudStack:
             if not self.module.check_mode:
                 args = {
                     'resourceids': resource['id'],
+                    'resourceid': resource['id'],
                     'resourcetype': resource_type,
                     meta_data_type: meta_data_list,
                 }
@@ -582,7 +583,7 @@ class AnsibleCloudStack:
                     resource_type,
                     metadata_absent_list,
                     metadata_attributes['type'],
-                    metadata_attributes['create_operation'])
+                    metadata_attributes['delete_operation'])
 
                 metadata_present_list = [i for i in wanted_metadata_list if i not in current_metadata_list]
 
@@ -591,7 +592,7 @@ class AnsibleCloudStack:
                     resource_type,
                     metadata_present_list,
                     metadata_attributes['type'],
-                    metadata_attributes['delete_operation'])
+                    metadata_attributes['create_operation'])
 
     def ensure_tags(self, resource, resource_type=None):
         metadata_attributes = {
