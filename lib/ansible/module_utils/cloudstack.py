@@ -568,31 +568,39 @@ class AnsibleCloudStack:
         if not resource_type or not resource:
             self.fail_json(msg="Error: Missing resource or resource_type for %s." % metadata_attributes['type'])
 
-        if metadata_attributes['type'] in resource:
-            wanted_metadata_list = self.module.params.get(metadata_attributes['type'])
-            if wanted_metadata_list is not None:
-                current_metadata_list = self._get_minimalized_metadata_from_resource(resource, metadata_attributes['type'])
+        if metadata_attributes['type'] not in resource:
+            return
 
-                self.result['diff']['before'][metadata_attributes['type']] = current_metadata_list
-                self.result['diff']['after'][metadata_attributes['type']] = wanted_metadata_list
+        wanted_metadata_list = self.module.params.get(metadata_attributes['type'])
+        if wanted_metadata_list is None:
+            return
 
-                metadata_absent_list = [i for i in current_metadata_list if i not in wanted_metadata_list]
+        current_metadata_list = self._get_minimalized_metadata_from_resource(resource, metadata_attributes['type'])
 
-                self._process_metadata(
-                    resource,
-                    resource_type,
-                    metadata_absent_list,
-                    metadata_attributes['type'],
-                    metadata_attributes['delete_operation'])
+        self.result['diff']['before'][metadata_attributes['type']] = current_metadata_list
 
-                metadata_present_list = [i for i in wanted_metadata_list if i not in current_metadata_list]
+        if 'delete_operation' in metadata_attributes:
+            self.result['diff']['after'][metadata_attributes['type']] = wanted_metadata_list
 
-                self._process_metadata(
-                    resource,
-                    resource_type,
-                    metadata_present_list,
-                    metadata_attributes['type'],
-                    metadata_attributes['create_operation'])
+            metadata_absent_list = [i for i in current_metadata_list if i not in wanted_metadata_list]
+
+            self._process_metadata(
+                resource,
+                resource_type,
+                metadata_absent_list,
+                metadata_attributes['type'],
+                metadata_attributes['delete_operation'])
+        else:
+            self.result['diff']['after'][metadata_attributes['type']] = current_metadata_list + wanted_metadata_list
+
+        metadata_present_list = [i for i in wanted_metadata_list if i not in current_metadata_list]
+
+        self._process_metadata(
+            resource,
+            resource_type,
+            metadata_present_list,
+            metadata_attributes['type'],
+            metadata_attributes['create_operation'])
 
     def ensure_tags(self, resource, resource_type=None):
         metadata_attributes = {
@@ -613,7 +621,6 @@ class AnsibleCloudStack:
         metadata_attributes = {
             'type': 'details',
             'create_operation': 'addResourceDetail',
-            'delete_operation': 'removeResourceDetail'
         }
         self._ensure_resource_metadata(resource, resource_type, metadata_attributes)
         args = {

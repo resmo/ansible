@@ -606,6 +606,7 @@ class AnsibleCloudStackInstance(AnsibleCloudStack):
         # In check mode, we do not necessarily have an instance
         if instance:
             instance = self.ensure_tags(resource=instance, resource_type='UserVm')
+            instance = self.ensure_details(resource=instance, resource_type='UserVm')
             # refresh instance data
             self.instance = instance
 
@@ -635,7 +636,7 @@ class AnsibleCloudStackInstance(AnsibleCloudStack):
         instance_details = self._get_instance_details()
         if instance_details:
             if details is not None:
-                details.update(instance_details)
+                details.append(instance_details)
             else:
                 details = instance_details
         return details

@@ -5,8 +5,8 @@
     template: "{{ test_cs_instance_template }}"
     service_offering: "{{ test_cs_instance_offering_1 }}"
     details:
-     - { rootDiskController: lsilogic }
-     - { dataDiskController: osdefault }
+     - { key: rootDiskController, value: lsilogic }
+     - { key: dataDiskController, value: osdefault }
   register: instance
   check_mode: yes
 - name: verify add details to instance in check mode
@@ -21,8 +21,8 @@
     template: "{{ test_cs_instance_template }}"
     service_offering: "{{ test_cs_instance_offering_1 }}"
     details:
-     - { rootDiskController: lsilogic }
-     - { dataDiskController: osdefault }
+     - { key: rootDiskController, value: lsilogic }
+     - { key: dataDiskController, value: osdefault }
   register: instance
 - name: verify add details to instance
   assert:
@@ -37,8 +37,8 @@
     template: "{{ test_cs_instance_template }}"
     service_offering: "{{ test_cs_instance_offering_1 }}"
     details:
-     - { rootDiskController: lsilogic }
-     - { dataDiskController: osdefault }
+     - { key: rootDiskController, value: lsilogic }
+     - { key: dataDiskController, value: osdefault }
   register: instance
 - name: verify add details to instance idempotence
   assert:
@@ -52,8 +52,8 @@
     template: "{{ test_cs_instance_template }}"
     service_offering: "{{ test_cs_instance_offering_1 }}"
     details:
-     - { rootDiskController: osdefault }
-     - { dataDiskController: osdefault }
+     - { key: rootDiskController, value: osdefault }
+     - { key: dataDiskController, value: osdefault }
   register: instance
   check_mode: yes
 - name: verify update details to instance in check mode
@@ -68,8 +68,8 @@
     template: "{{ test_cs_instance_template }}"
     service_offering: "{{ test_cs_instance_offering_1 }}"
     details:
-     - { rootDiskController: osdefault }
-     - { dataDiskController: osdefault }
+     - { key: rootDiskController, value: osdefault }
+     - { key: dataDiskController, value: osdefault }
   register: instance
 - name: verify update details to instance
   assert:
@@ -83,8 +83,8 @@
     template: "{{ test_cs_instance_template }}"
     service_offering: "{{ test_cs_instance_offering_1 }}"
     details:
-     - { rootDiskController: osdefault }
-     - { dataDiskController: osdefault }
+     - { key: rootDiskController, value: osdefault }
+     - { key: dataDiskController, value: osdefault }
   register: instance
 - name: verify update details to instance idempotence
   assert:

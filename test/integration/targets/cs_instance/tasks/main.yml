@@ -2,7 +2,7 @@
 - import_tasks: setup.yml
 
 - import_tasks: present.yml
-# - import_tasks: details.yml
+- import_tasks: details.yml
 - import_tasks: tags.yml
 - import_tasks: absent.yml
 
