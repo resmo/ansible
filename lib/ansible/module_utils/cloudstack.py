@@ -223,7 +223,7 @@ class AnsibleCloudStack:
             res = getattr(self.cs, command)(**args)
 
             if 'errortext' in res:
-                self.fail_json(msg="Failed: '%s'" % res['errortext'])
+                self.fail_json(msg="Failed: %s" % res['errortext'])
 
         except CloudStackException as e:
             self.fail_json(msg='CloudStackException: %s' % to_native(e))
@@ -638,7 +638,7 @@ class AnsibleCloudStack:
                 if res['jobstatus'] != 0 and 'jobresult' in res:
 
                     if 'errortext' in res['jobresult']:
-                        self.fail_json(msg="Failed: '%s'" % res['jobresult']['errortext'])
+                        self.fail_json(msg="Failed polling job ID %s: %s" % (job['jobid'], res['jobresult']['errortext']))
 
                     if key and key in res['jobresult']:
                         job = res['jobresult'][key]

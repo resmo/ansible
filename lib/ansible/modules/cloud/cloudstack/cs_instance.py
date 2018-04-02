@@ -442,7 +442,7 @@ class AnsibleCloudStackInstance(AnsibleCloudStack):
             else:
                 more_info = ""
 
-            self.module.fail_json(msg="Template '%s' not found%s" % (template, more_info))
+            self.fail_json(msg="Template '%s' not found%s" % (template, more_info))
 
         elif iso:
             if self.iso:
@@ -456,7 +456,7 @@ class AnsibleCloudStackInstance(AnsibleCloudStack):
                         self.iso = i
                         return self._get_by_key(key, self.iso)
 
-            self.module.fail_json(msg="ISO '%s' not found" % iso)
+            self.fail_json(msg="ISO '%s' not found" % iso)
 
     def get_instance(self):
         instance = self.instance
@@ -493,7 +493,7 @@ class AnsibleCloudStackInstance(AnsibleCloudStack):
             return
 
         if network_mappings and self.module.params.get('networks'):
-            self.module.fail_json(msg="networks and ip_to_networks are mutually exclusive.")
+            self.fail_json(msg="networks and ip_to_networks are mutually exclusive.")
 
         network_names = [n['network'] for n in network_mappings]
         ids = self.get_network_ids(network_names)
@@ -518,7 +518,7 @@ class AnsibleCloudStackInstance(AnsibleCloudStack):
             return self._get_by_key(key=key, my_dict=ssh_key_pairs['sshkeypair'][0])
 
         elif fail_on_missing:
-            self.module.fail_json(msg="SSH key not found: %s" % ssh_key_name)
+            self.fail_json(msg="SSH key not found: %s" % ssh_key_name)
 
     def ssh_key_has_changed(self):
         ssh_key_name = self.module.params.get('ssh_key')
@@ -578,7 +578,7 @@ class AnsibleCloudStackInstance(AnsibleCloudStack):
         }
         networks = self.query_api('listNetworks', **args)
         if not networks:
-            self.module.fail_json(msg="No networks available")
+            self.fail_json(msg="No networks available")
 
         network_ids = []
         network_displaytexts = []
@@ -590,7 +590,7 @@ class AnsibleCloudStackInstance(AnsibleCloudStack):
                     break
 
         if len(network_ids) != len(network_names):
-            self.module.fail_json(msg="Could not find all networks, networks list found: %s" % network_displaytexts)
+            self.fail_json(msg="Could not find all networks, networks list found: %s" % network_displaytexts)
 
         return network_ids
 
@@ -649,7 +649,7 @@ class AnsibleCloudStackInstance(AnsibleCloudStack):
         args = {}
         args['templateid'] = self.get_template_or_iso(key='id')
         if not args['templateid']:
-            self.module.fail_json(msg="Template or ISO is required.")
+            self.fail_json(msg="Template or ISO is required.")
 
         args['zoneid'] = self.get_zone(key='id')
         args['serviceofferingid'] = self.get_service_offering_id()
