@@ -396,26 +396,26 @@ files:
   $modules/monitoring/bigpanda.py: hkariti
   $modules/monitoring/boundary_meter.py: ccollicutt
   $modules/monitoring/circonus_annotation.py: NickatEpic
-  $modules/monitoring/datadog_event.py:
+  $modules/monitoring/datadog/datadog_event.py:
     ignored: arturaz
     maintainers: n0ts
-  $modules/monitoring/datadog_monitor.py: skornehl
+  $modules/monitoring/datadog/datadog_monitor.py: skornehl
   $modules/monitoring/honeybadger_deployment.py: stympy
-  $modules/monitoring/icinga2_feature.py: nerzhul
+  $modules/monitoring/icinga/icinga2_feature.py: nerzhul
   $modules/monitoring/librato_annotation.py: sedward
   $modules/monitoring/logentries.py:
     ignored: ivanvanderbyl
-  $modules/monitoring/logicmonitor.py: ethanculler woz5999
+  $modules/monitoring/logicmonitor/: ethanculler woz5999
   $modules/monitoring/logstash_plugin.py: nerzhul
   $modules/monitoring/monit.py: brian-brazil dstoflet
   $modules/monitoring/nagios.py: tbielawa
   $modules/monitoring/newrelic_deployment.py: mcodd
-  $modules/monitoring/pagerduty_alert.py:
+  $modules/monitoring/pagerduty/pagerduty_alert.py:
   $modules/monitoring/pingdom.py: thaumos
   $modules/monitoring/rollbar_deployment.py: kavu
-  $modules/monitoring/sensu_check.py: andsens
-  $modules/monitoring/sensu_silence.py: smbambling
-  $modules/monitoring/sensu_subscription.py: andsens
+  $modules/monitoring/sensu/sensu_check.py: andsens
+  $modules/monitoring/sensu/sensu_silence.py: smbambling
+  $modules/monitoring/sensu/sensu_subscription.py: andsens
   $modules/monitoring/stackdriver.py: bwhaley
   $modules/monitoring/statusio_maintenance.py: bhcopeland
   $modules/monitoring/uptimerobot.py: nate-kingsley
