@@ -91,6 +91,7 @@ class CloudStackInventory(object):
         parser.add_argument('--host')
         parser.add_argument('--list', action='store_true')
         parser.add_argument('--tag', help="Filter machines by a tag. Should be in the form key=value.")
+        parser.add_argument('--group-by', help="Group machines by this key")
         parser.add_argument('--project')
         parser.add_argument('--domain')
 
@@ -116,10 +117,10 @@ class CloudStackInventory(object):
             tags = dict()
             if options.tag:
                 tags['tags[0].key'], tags['tags[0].value'] = options.tag.split('=')
-            data = self.get_list(project_id, domain_id, **tags)
+            data = self.get_list(project_id, domain_id, group_by=options.group_by, **tags)
             print(json.dumps(data, indent=2))
         else:
-            print("usage: --list [--tag <tag>] | --host <hostname> [--project <project>] [--domain <domain_path>]",
+            print("usage: --list [--tag <tag>] [--group-by <name>] | --host <hostname> [--project <project>] [--domain <domain_path>]",
                   file=sys.stderr)
             sys.exit(1)
 
@@ -178,7 +179,7 @@ class CloudStackInventory(object):
                 break
         return data
 
-    def get_list(self, project_id=None, domain_id=None, **kwargs):
+    def get_list(self, project_id=None, domain_id=None, group_by=None, **kwargs):
         data = {
             'all': {
                 'hosts': [],
@@ -204,6 +205,14 @@ class CloudStackInventory(object):
             host_name = host['displayname']
             data['all']['hosts'].append(host_name)
             data['_meta']['hostvars'][host_name] = {}
+
+            # Group by group-by
+            if group_by:
+                if group_by not in data:
+                    data[group_by] = {
+                        'hosts': []
+                    }
+                    data[group_by]['hosts'].append(host_name)
 
             # Make a group per zone
             data['_meta']['hostvars'][host_name]['zone'] = host['zonename']
