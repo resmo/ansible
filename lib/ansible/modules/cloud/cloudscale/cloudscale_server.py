@@ -206,10 +206,8 @@ anti_affinity_with:
   sample: []
 '''
 
-import os
 from datetime import datetime, timedelta
 from time import sleep
-from copy import deepcopy
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.cloudscale import AnsibleCloudscaleBase, cloudscale_argument_spec
@@ -225,115 +223,129 @@ class AnsibleCloudscaleServer(AnsibleCloudscaleBase):
     def __init__(self, module):
         super(AnsibleCloudscaleServer, self).__init__(module)
 
-        # Check if server already exists and load properties
-        uuid = self._module.params['uuid']
-        name = self._module.params['name']
+        self.result = {
+            'changed': False,
+            'diff': dict(before=dict(), after=dict())
+        }
 
-        # Initialize server dictionary
-        self.info = {'uuid': uuid, 'name': name, 'state': 'absent'}
+        # Server container
+        self.info = None
 
-        servers = self.list_servers()
-        matching_server = []
-        for s in servers:
-            if uuid:
-                # Look for server by UUID if given
-                if s['uuid'] == uuid:
-                    self.info = self._transform_state(s)
-                    break
-            else:
-                # Look for server by name
-                if s['name'] == name:
-                    matching_server.append(s)
+        self.returns = {
+            'href': dict(),
+            'state': dict(key='status'),
+            'uuid': dict(),
+            'name': dict(),
+            'flavor': dict(),
+            'image': dict(),
+            'volumes': dict(),
+            'interfaces': dict(),
+            'ssh_fingerprints': dict(),
+            'ssh_host_keys': dict(),
+            'anti_affinity_with': dict(),
+        }
+
+    def get_server_info(self, refresh=False):
+        if self.info is not None and not refresh:
+            return self.info
+
+        self.info = {}
+        uuid = self._module.params.get('uuid') or self.info.get('uuid')
+        if uuid is not None:
+            server = self._get('servers/%s' % uuid)
+            if server:
+                self.info = server
         else:
-            if len(matching_server) == 1:
-                self.info = self._transform_state(matching_server[0])
-            elif len(matching_server) > 1:
-                self._module.fail_json(msg="More than one server with name '%s' exists. "
-                                       "Use the 'uuid' parameter to identify the server." % name)
+            name = self._module.params.get('name')
+            if name is not None:
+                servers = self._get('servers') or []
+                matching_server = []
+                for s in servers:
+                    if s['name'] == name:
+                        matching_server.append(s)
+                else:
+                    if len(matching_server) == 1:
+                        self.info = matching_server[0]
+                    elif len(matching_server) > 1:
+                        self._module.fail_json(msg="More than one server with name '%s' exists. "
+                                               "Use the 'uuid' parameter to identify the server." % name)
 
-    @staticmethod
-    def _transform_state(server):
-        if 'status' in server:
-            server['state'] = server['status']
-            del server['status']
-        else:
-            server['state'] = 'absent'
-        return server
-
-    def update_info(self):
-
-        # If we don't have a UUID (yet) there is nothing to update
-        if 'uuid' not in self.info:
-            return
-
-        url_path = 'servers/' + self.info['uuid']
-        resp = self._get(url_path)
-
-        if resp:
-            self.info = self._transform_state(resp)
-        else:
-            self.info = {'uuid': self.info['uuid'],
-                         'name': self.info.get('name', None),
-                         'state': 'absent'}
+        return self.info
 
     def wait_for_state(self, states):
         start = datetime.now()
         timeout = self._module.params['api_timeout'] * 2
         while datetime.now() - start < timedelta(seconds=timeout):
-            self.update_info()
-            if self.info['state'] in states:
-                return True
+            server_info = self.get_server_info()
+
+            if server_info.get('status') in states:
+                return server_info
             sleep(1)
 
-        self._module.fail_json(msg='Timeout while waiting for a state change on server %s to states %s. Current state is %s.'
-                               % (self.info['name'], states, self.info['state']))
+        if server_info:
+            msg = "Timeout while waiting for a state change on server %s to states %s."
+            "Current state is %s." % (server_info('name'), states, server_info.get('status'))
+        else:
+            name_uuid = self._module.params.get('name') or self._module.params.get('uuid')
+            msg = 'Timeout while waiting to find the server %s' % name_uuid
 
-    def create_server(self):
-        data = self._module.params.copy()
+        self._module.fail_json(msg=msg)
+
+    def _create_server(self):
+        self.result['changed'] = True
+        server_info = {}
+
+        params = self._module.params
 
         # check for required parameters to create a server
         missing_parameters = []
         for p in ('name', 'ssh_keys', 'image', 'flavor'):
-            if p not in data or not data[p]:
+            if p not in params or not params[p]:
                 missing_parameters.append(p)
 
         if len(missing_parameters) > 0:
             self._module.fail_json(msg='Missing required parameter(s) to create a new server: %s.' %
                                    ' '.join(missing_parameters))
 
-        # Deepcopy: Duplicate the data object for iteration, because
-        # iterating an object and changing it at the same time is insecure
+       data = {
+        'name': params['name'],
+       }
 
-        # Sanitize data dictionary
-        for k, v in deepcopy(data).items():
+        if not self._module.check_mode():
+            self._post('servers', data)
+            server_info = self.wait_for_state(('running', ))
+        return server_info
 
-            # Remove items not relevant to the create server call
-            if k in ('api_token', 'api_timeout', 'uuid', 'state'):
-                del data[k]
-                continue
 
-            # Remove None values, these don't get correctly translated by urlencode
-            if v is None:
-                del data[k]
-                continue
+    def _update_server(self):
 
-        self.info = self._transform_state(self._post('servers', data))
-        self.wait_for_state(('running', ))
 
-    def delete_server(self):
-        self._delete('servers/%s' % self.info['uuid'])
-        self.wait_for_state(('absent', ))
+        return server_info
+
+    def absent_server(self):
+        server_info = self.get_server_info()
+        if not server_info:
+            self.result['changed'] = True
+            if not self._module.check_mode():
+                self._delete('servers/%s' % server_info['uuid'])
+                self.wait_for_state(('absent', ))
+        # Return last queried infos
+        return server_info
 
     def start_server(self):
-        self._post('servers/%s/start' % self.info['uuid'])
-        self.wait_for_state(('running', ))
+        server_info = self.get_server_info()
+        if server_info and server_info.get('status') != "running":
+            self.result['changed'] = True
+            self._post('servers/%s/start' % server_info['uuid'])
+            server_info = self.wait_for_state(('running', ))
+        return server_info
 
     def stop_server(self):
-        self._post('servers/%s/stop' % self.info['uuid'])
-        self.wait_for_state(('stopped', ))
-
-    def list_servers(self):
-        return self._get('servers') or []
+        server_info = self.get_server_info()
+        if server_info and server_info.get('status') != "stopped":
+            self._post('servers/%s/stop' % server_info['uuid'])
+            server_info = self.wait_for_state(('stopped', ))
+        return server_info
 
 
 def main():
@@ -361,38 +373,12 @@ def main():
         supports_check_mode=True,
     )
 
-    target_state = module.params['state']
-    server = AnsibleCloudscaleServer(module)
-    # The server could be in a changing or error state.
-    # Wait for one of the allowed states before doing anything.
-    # If an allowed state can't be reached, this module fails.
-    if server.info['state'] not in ALLOWED_STATES:
-        server.wait_for_state(ALLOWED_STATES)
-    current_state = server.info['state']
+    state = module.params['state']
+    cloudscale_server = AnsibleCloudscaleServer(module)
 
-    if module.check_mode:
-        module.exit_json(changed=not target_state == current_state,
-                         **server.info)
 
-    changed = False
-    if current_state == 'absent' and target_state == 'running':
-        server.create_server()
-        changed = True
-    elif current_state == 'absent' and target_state == 'stopped':
-        server.create_server()
-        server.stop_server()
-        changed = True
-    elif current_state == 'stopped' and target_state == 'running':
-        server.start_server()
-        changed = True
-    elif current_state in ('running', 'stopped') and target_state == 'absent':
-        server.delete_server()
-        changed = True
-    elif current_state == 'running' and target_state == 'stopped':
-        server.stop_server()
-        changed = True
-
-    module.exit_json(changed=changed, **server.info)
+    returns = server.get_returns()
+    module.exit_json(**returns)
 
 
 if __name__ == '__main__':
